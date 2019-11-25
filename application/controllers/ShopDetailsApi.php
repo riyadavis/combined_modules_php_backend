@@ -27,11 +27,27 @@ class ShopDetailsApi extends CI_Controller
         }
         $this->load->view('Api/Json_output',$data);
     }
+    
     //get all shops within the given radius.....
-
-    public function GetItem()
+    public function GetAllShopsWithinLimit()
     {
-      $check['items']= $this->MainModel->input();
+      $check['items']= $this->MainModel->GetAllShopsWithinLimit();
       $this->load->view('Api/Json_output',$check);
     }
+    //search......
+    public function searchResult()
+	{
+		$searchItem = $this->input->get('q');
+		$data['items'] = $this->MainModel->searchResult($searchItem);
+		$this->load->view('API/Json_output',$data);
+    }
+    //shop search within radius..
+    public function shopsWithinRadius()
+	{
+		$coor = array('lat'=> $this->input->post('lat'),
+					'lng' => $this->input->post('long'));
+		$keyword = $this->input->post('keyword');//keyword can be shop or product
+		$data['items'] = $this->MainModel->shopsWithinRadius($coor,$keyword);
+		$this->load->view('API/Json_output',$data);
+	}
 }

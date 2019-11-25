@@ -7,7 +7,7 @@ class MainModel extends CI_Model
   {
       if( $phonenumber!=null)
       { $this->db->trans_start();
-        $query=$this->db->query(" SELECT id FROM customertable WHERE customermobile = '$phonenumber'")->row();
+        $query=$this->db->query(" SELECT id FROM customertable WHERE cust_mobile = '$phonenumber'")->row();
         $this->db->trans_complete();
         if($query==null)
         {
@@ -23,7 +23,7 @@ class MainModel extends CI_Model
             $this->db->trans_complete();
             if($this->db->trans_status()==true)
             {
-              $insert= array('customermobile'=>$phonenumber);
+              $insert= array('cust_mobile'=>$phonenumber);
               $this->db->trans_start();
               $this->db->insert('customertable',$insert);
               $this->db->trans_complete();
@@ -32,7 +32,7 @@ class MainModel extends CI_Model
               {
                 $this->db->trans_start();
                 $check_query=$this->db->query("SELECT id FROM customertable where 
-                                              customermobile='$phonenumber'")->row();
+                                              cust_mobile='$phonenumber'")->row();
                 $this->db->trans_complete();                              
                 if($check_query!=null)
                 {
@@ -40,7 +40,7 @@ class MainModel extends CI_Model
                   
                   if($id!=null)
                   {
-                    $insert=array('customerid'=>$id);
+                    $insert=array('cust_id'=>$id);
                     $this->db->trans_start();
                     $this->db->insert('verificationtable',$insert);
                     $this->db->trans_complete();
@@ -57,7 +57,7 @@ class MainModel extends CI_Model
           {
            $this->db->trans_start();
            $check_query=$this->db->query("SELECT id FROM customertable where 
-                                          customermobile='$phonenumber'")->row();
+                                          cust_mobile='$phonenumber'")->row();
            $this->db->trans_complete();                              
            $id=$query->id;
            $array = array('phonenumber'=>$phonenumber,
@@ -71,7 +71,7 @@ class MainModel extends CI_Model
   {
         $this->db->trans_start();
         $flag1=$this->db->query(" SELECT count(*) as count from customertable
-                               where customermobile='$phonenumber'")->row();
+                               where cust_mobile='$phonenumber'")->row();
         $this->db->trans_complete();                       
         if($flag1->count!=1)
         {
@@ -81,7 +81,7 @@ class MainModel extends CI_Model
         {
             $this->db->trans_start();
             $result = $this->db->query("SELECT id FROM customertable WHERE
-                                        customermobile = '$phonenumber'")->row();
+                                        cust_mobile = '$phonenumber'")->row();
             $this->db->trans_complete();                            
             $id=$result->id;
             $array = array('phonenumber'=>$phonenumber,
@@ -101,7 +101,7 @@ class MainModel extends CI_Model
                         'verify_expiry' => strtotime('+40 seconds')
                         );
           $this->db->trans_start();              
-          $this->db->where('customer_id',$id);
+          $this->db->where('cust_id',$id);
           $this->db->update('verificationtable',$insert);
           $this->db->trans_complete();
           $array = array('otp' =>$otp,
@@ -119,7 +119,7 @@ class MainModel extends CI_Model
         $current = time();
         $this->db->trans_start();
         $flag=$this->db->query("SELECT count(*) as count from Verificationtable
-                                where customer_id='$myid' and otp_code='$otp' and 
+                                where cust_id='$myid' and otp_code='$otp' and 
                                 verify_expiry > '$current'")->row();
         $this->db->trans_complete();                        
         if($flag->count!=1)
@@ -129,7 +129,7 @@ class MainModel extends CI_Model
                            'verified_status'=>$result,
                          );
             $this->db->trans_start();             
-            $this->db->where('customer_id',$myid);             
+            $this->db->where('cust_id',$myid);             
             $this->db->update('verificationtable',$insert);
             $this->db->trans_complete();
             return 2;
@@ -141,7 +141,7 @@ class MainModel extends CI_Model
                             'verified_status'=>$result,
                          );
             $this->db->trans_start();             
-            $this->db->where('customer_id',$myid);
+            $this->db->where('cust_id',$myid);
             $this->db->update('verificationtable',$insert);
             $this->db->trans_complete();
             return 1;
@@ -424,9 +424,146 @@ class MainModel extends CI_Model
         $insertProduct = $this->db->query("select * from product")->result_array();
         return ["error"=>false, "reason"=>$insertProduct];
     }
+    //get all the shops with the items while passing the shopid as parameter
+    public function search($key)
+    {
+            $this->db->trans_start();
+            $result = $this->db->query("SELECT id FROM distributor_table WHERE dist_id = '$key'")->row();
+            $this->db->trans_complete();
+            if($result!=null)
+            {
+                $id=$result->id;
+                $this->db->trans_start();
+                $query=$this->db->query("SELECT category_id,product_name,Mrp,Max_discount 
+                                        from stock_table where dist_id = '$id'")->result_array();
+                $this->db->trans_complete();
+                return $query;
+            }
+            else
+            {
+                return 1;
+            }
+    }
+    public function GetAllShopsWithinLimit()
+    {
+        $lat=10.050317;
+        $lng=76.329552; 
+        $radius=10;
+        $this->db->trans_start();
+        $query = $this->db->query("SELECT id,dist_name,rating,  (6371 * acos(cos( radians('".$lat."')) * 
+                                  cos(radians( JSON_EXTRACT(coordinates,'$.latitude') )) * 
+                                  cos(radians(JSON_EXTRACT(coordinates,'$.longitude')) - radians('".$lng."')) 
+                                  + sin(radians('".$lat."')) * sin(radians(JSON_EXTRACT(coordinates,'$.latitude') ))))
+                                  AS distance FROM distributor_table HAVING distance < '".$radius."' ORDER BY
+                                  distance LIMIT 0,20")->result_array();
+        $this->db->trans_complete();                          
+        $shops = $query;                         
+        $i=0;
+        foreach($shops as $value)
+        {
+            // $shops[$i]['offer'] = $this->db->query('SELECT  offer_name, offer_image_thumbnail from offer where offer_id = '.$value['id'])->result_array();
+            $category = $this->db->query('SELECT  Category_name from category where cat_id = '.$value['id'])->result_array();
+            $shops[$i]['category'] = $category[0]['Category_name'];
+            $i++;
+        }
+        return $shops;
+  }
+  //search..
+  public function searchResult($searchItem)
+  {
+        $searchShop = $this->db->query("select count(*) as count from distributor_hub where hub_name like '%$searchItem%'")->result_array();
+        $shopSearchCount = $searchShop[0]['count'];
+        $totalShop = $this->db->query("select count(*) as count from distributor_hub")->result_array();
+        $totalShopCount = $totalShop[0]['count'];
 
+        $searchProduct = $this->db->query("select count(*) as count from product where product_name like '%$searchItem%'")->result_array();
+        $productSearchCount = $searchProduct[0]['count'];
+        $totalProduct = $this->db->query("select count(*) as count from product")->result_array();
+        $totalProductCount = $totalProduct[0]['count'];
 
+        $searchProductTag = $this->db->query("select count(*) as count from product where MATCH (product_tags) AGAINST ('".$searchItem."')")->result_array();
+        $ProductTagcount = $searchProductTag[0]['count'];
+        
+        $shopProbability = $shopSearchCount/$totalShopCount;
+        $productProbability = $productSearchCount/$totalProductCount;
+        $tagProbability = $ProductTagcount/$totalProductCount;
 
-  
+        $highestProbability = max($shopProbability,$productProbability,$tagProbability);
 
+        if($highestProbability == $shopProbability)
+        {
+            $shopLists = $this->db->query("select id,hub_name as name,pickup_address,image from distributor_hub where hub_name like '%$searchItem%'")->result_array();
+            return $shopLists;
+        }
+       else if($highestProbability == $productProbability)
+       {
+            $productLists = $this->db->query("select id,hub_id,product_name as name,product_image as image,product_price as price from product where product_name like '%$searchItem%'")->result_array();
+            return $productLists;
+       }
+       else 
+       {
+           $tagLists = $this->db->query("select id,hub_id,product_name as name,product_image as image,product_price as price,product_tags as tags from product where MATCH(product_tags) AGAINST('$searchItem')")->result_array();
+           return $tagLists;
+       }
+    }
+    //shop search within radius..
+    public function shopsWithinRadius($coor, $keyword)
+    {
+        $lat = $coor['lat'];
+        $lng = $coor['lng'];
+        $radius = 10;
+        $start = 0;
+        $end = 20;
+        $distanceQuery = $this->db->query("SELECT id,(6371 * acos(cos( radians('".$lat."')) * 
+                              cos(radians( JSON_EXTRACT(location_coordinate,'$.latitude') )) * 
+                              cos(radians(JSON_EXTRACT(location_coordinate,'$.longitude')) - radians('".$lng."')) 
+                              + sin(radians('".$lat."')) * sin(radians(JSON_EXTRACT(location_coordinate,'$.latitude') ))))
+                              AS distance FROM distributor_hub HAVING distance < '".$radius."' ORDER BY
+                              distance LIMIT $start,$end")->result_array();
+    
+        for($i = 0;$i < count($distanceQuery); $i++)
+        {
+            $nearShopId[$i] = json_decode($distanceQuery[$i]['id']);            
+        }
+        $productHub = $this->db->query("select hub_id from product where product_name = '$keyword'")->result_array();
+        if($this->db->affected_rows()>0)
+        {
+            for($i = 0;$i < count($productHub); $i++)
+            {
+                $hubIdArray[$i] = $productHub[$i]['hub_id'];
+            }
+            $this->db->where_in('id',$nearShopId);
+            $this->db->where_in('id',$hubIdArray);
+                $availableShops = $this->db->get('distributor_hub')->result_array();
+            if($availableShops){
+                foreach($availableShops as &$val)
+                {
+                    $val['distance'] = $distanceQuery[array_search($val['id'],array_column($distanceQuery, 'id'))]['distance'];
+                }
+                return ["error"=>false, "reason"=>$availableShops];
+            }
+            else
+            {
+                return ["error"=>true, "reason"=>"product is not available near you"];
+            }
+        }
+        else
+        {
+            $this->db->where_in('hub_name',$keyword);
+            $this->db->where_in('id',$nearShopId);
+            $searchedShop = $this->db->get('distributor_hub')->result_array();
+            if($searchedShop)
+            {
+                foreach($searchedShop as &$val)
+                {
+                    $val['distance'] = $distanceQuery[array_search($val['id'],array_column($distanceQuery, 'id'))]['distance'];
+                }
+                return ["error"=>false, "reason"=>$searchedShop];
+            }
+            else
+            {
+                return ["error"=>true, "reason"=>"no shops near you"];
+            }
+        }
+    }
 }
