@@ -13,10 +13,10 @@ class ShopDetailsApi extends CI_Controller
     }
 
     //get all the shops with the items while passing the shopid as parameter..
-    public function shopInfo()
+    public function shopInformation()
     {
-       $key = $_GET['shopid'];
-        $checkSearch=$this->MainModel->search($key);
+       $key = $this->input->get('shopid');
+        $checkSearch=$this->MainModel->shopInformation($key);
         if($checkSearch!=1)
         {
             $data['items']=$checkSearch;

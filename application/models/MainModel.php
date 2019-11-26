@@ -7,7 +7,7 @@ class MainModel extends CI_Model
   {
       if( $phonenumber!=null)
       { $this->db->trans_start();
-        $query=$this->db->query(" SELECT id FROM customertable WHERE cust_mobile = '$phonenumber'")->row();
+        $query=$this->db->query(" SELECT id FROM customertable WHERE customer_mobile = '$phonenumber'")->row();
         $this->db->trans_complete();
         if($query==null)
         {
@@ -17,13 +17,13 @@ class MainModel extends CI_Model
                 
           if($enc!=null)
           {
-            $insert= array('hash_mob'=>$enc);
+            $insert= array('salt'=>$enc);
             $this->db->trans_start();
-            $this->db->insert('api',$insert);
+            $this->db->insert('api_table',$insert);
             $this->db->trans_complete();
             if($this->db->trans_status()==true)
             {
-              $insert= array('cust_mobile'=>$phonenumber);
+              $insert= array('customer_mobile'=>$phonenumber);
               $this->db->trans_start();
               $this->db->insert('customertable',$insert);
               $this->db->trans_complete();
@@ -32,7 +32,7 @@ class MainModel extends CI_Model
               {
                 $this->db->trans_start();
                 $check_query=$this->db->query("SELECT id FROM customertable where 
-                                              cust_mobile='$phonenumber'")->row();
+                                              customer_mobile='$phonenumber'")->row();
                 $this->db->trans_complete();                              
                 if($check_query!=null)
                 {
@@ -40,7 +40,7 @@ class MainModel extends CI_Model
                   
                   if($id!=null)
                   {
-                    $insert=array('cust_id'=>$id);
+                    $insert=array('customer_id'=>$id);
                     $this->db->trans_start();
                     $this->db->insert('verificationtable',$insert);
                     $this->db->trans_complete();
@@ -57,7 +57,7 @@ class MainModel extends CI_Model
           {
            $this->db->trans_start();
            $check_query=$this->db->query("SELECT id FROM customertable where 
-                                          cust_mobile='$phonenumber'")->row();
+                                          customer_mobile='$phonenumber'")->row();
            $this->db->trans_complete();                              
            $id=$query->id;
            $array = array('phonenumber'=>$phonenumber,
@@ -71,7 +71,7 @@ class MainModel extends CI_Model
   {
         $this->db->trans_start();
         $flag1=$this->db->query(" SELECT count(*) as count from customertable
-                               where cust_mobile='$phonenumber'")->row();
+                               where customer_mobile='$phonenumber'")->row();
         $this->db->trans_complete();                       
         if($flag1->count!=1)
         {
@@ -81,7 +81,7 @@ class MainModel extends CI_Model
         {
             $this->db->trans_start();
             $result = $this->db->query("SELECT id FROM customertable WHERE
-                                        cust_mobile = '$phonenumber'")->row();
+                                        customer_mobile = '$phonenumber'")->row();
             $this->db->trans_complete();                            
             $id=$result->id;
             $array = array('phonenumber'=>$phonenumber,
@@ -101,7 +101,7 @@ class MainModel extends CI_Model
                         'verify_expiry' => strtotime('+40 seconds')
                         );
           $this->db->trans_start();              
-          $this->db->where('cust_id',$id);
+          $this->db->where('customer_id',$id);
           $this->db->update('verificationtable',$insert);
           $this->db->trans_complete();
           $array = array('otp' =>$otp,
@@ -119,7 +119,7 @@ class MainModel extends CI_Model
         $current = time();
         $this->db->trans_start();
         $flag=$this->db->query("SELECT count(*) as count from Verificationtable
-                                where cust_id='$myid' and otp_code='$otp' and 
+                                where customer_id='$myid' and otp_code='$otp' and 
                                 verify_expiry > '$current'")->row();
         $this->db->trans_complete();                        
         if($flag->count!=1)
@@ -129,7 +129,7 @@ class MainModel extends CI_Model
                            'verified_status'=>$result,
                          );
             $this->db->trans_start();             
-            $this->db->where('cust_id',$myid);             
+            $this->db->where('customer_id',$myid);             
             $this->db->update('verificationtable',$insert);
             $this->db->trans_complete();
             return 2;
@@ -141,7 +141,7 @@ class MainModel extends CI_Model
                             'verified_status'=>$result,
                          );
             $this->db->trans_start();             
-            $this->db->where('cust_id',$myid);
+            $this->db->where('customer_id',$myid);
             $this->db->update('verificationtable',$insert);
             $this->db->trans_complete();
             return 1;
@@ -425,7 +425,7 @@ class MainModel extends CI_Model
         return ["error"=>false, "reason"=>$insertProduct];
     }
     //get all the shops with the items while passing the shopid as parameter
-    public function search($key)
+    public function shopInformation($key)
     {
             $this->db->trans_start();
             $result = $this->db->query("SELECT id FROM distributor_table WHERE dist_id = '$key'")->row();
@@ -434,8 +434,8 @@ class MainModel extends CI_Model
             {
                 $id=$result->id;
                 $this->db->trans_start();
-                $query=$this->db->query("SELECT category_id,product_name,Mrp,Max_discount 
-                                        from stock_table where dist_id = '$id'")->result_array();
+                $query=$this->db->query("SELECT category_id,dist_id,product_name,product_price,max_discount ,min_discount,product_tags
+                                        from product where dist_id = '$id'")->result_array();
                 $this->db->trans_complete();
                 return $query;
             }
