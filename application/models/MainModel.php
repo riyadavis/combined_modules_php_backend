@@ -147,7 +147,7 @@ class MainModel extends CI_Model
             return 1;
         }
     }
-    /// retrieve phonenumber..
+    // for delivery address ... if phone number is given by user use it, otherwise use regisered number
     public function retrieveNumber($id)
     {
         if($id != null)
@@ -227,7 +227,7 @@ class MainModel extends CI_Model
             return ["error"=>true, "reason"=>"Invalid Coupon"];
         }
     }
-    //To place the order..
+    //get the order 
     public function PlaceOrder($userid)
     {
         if($userid)
@@ -241,7 +241,7 @@ class MainModel extends CI_Model
         }
         
     }
-    //insert order...
+    //insert order to database
     public function InsertOrder($userid,$items,$cartId)
     {
     
@@ -274,7 +274,7 @@ class MainModel extends CI_Model
         return ["error"=>false, "reason"=>"order placed"];
        
     }
-    //insert address......
+    //insert address
     public function InsertAddress($id,$insertAddress)
     {
         $insert =  json_encode($insertAddress);
@@ -350,7 +350,7 @@ class MainModel extends CI_Model
             return ["error"=>true, "reason"=>"empty"];
         }       
     }
-    //Add cart....
+    //Add cart....database
     public function addCart($iduser)
     {
         $source_id = 1;
@@ -385,7 +385,7 @@ class MainModel extends CI_Model
                 else
                 {
                     $jsonArray = json_decode(file_get_contents("php://input"), true);
-                    $addCart = array('customer_id'=>$this->session->userdata('userid'),
+                    $addCart = array('customer_id'=>$iduser,
                                     'items_added'=>json_encode($jsonArray),
                                     'source_id'=>$source_id,
                                     'time_stamp'=>Date('Y-m-d h:i:s'));
@@ -468,22 +468,28 @@ class MainModel extends CI_Model
         }
         return $shops;
   }
-  //search..
+  //search with keyword
   public function searchResult($searchItem)
   {
+								//number of shops related to search
         $searchShop = $this->db->query("select count(*) as count from distributor_hub where hub_name like '%$searchItem%'")->result_array();
         $shopSearchCount = $searchShop[0]['count'];
+								//total no. of shops in database
         $totalShop = $this->db->query("select count(*) as count from distributor_hub")->result_array();
         $totalShopCount = $totalShop[0]['count'];
 
+								//number of products related to search
         $searchProduct = $this->db->query("select count(*) as count from product where product_name like '%$searchItem%'")->result_array();
         $productSearchCount = $searchProduct[0]['count'];
+								//total no. products in database
         $totalProduct = $this->db->query("select count(*) as count from product")->result_array();
         $totalProductCount = $totalProduct[0]['count'];
 
+								//number of tags in products table related to search keyword
         $searchProductTag = $this->db->query("select count(*) as count from product where MATCH (product_tags) AGAINST ('".$searchItem."')")->result_array();
         $ProductTagcount = $searchProductTag[0]['count'];
         
+								//check probability
         $shopProbability = $shopSearchCount/$totalShopCount;
         $productProbability = $productSearchCount/$totalProductCount;
         $tagProbability = $ProductTagcount/$totalProductCount;
